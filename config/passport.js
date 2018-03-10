@@ -1,22 +1,19 @@
 const mongoose = require('mongoose');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
-const googleOAuthConfiguration = require('../config/googleoauth');
+const keys = require('../config/keys');
 
 const User = require('../models/User');
 
 module.exports = (passport) => {
     passport.use(
         new GoogleStrategy({
-            clientID: googleOAuthConfiguration.googleClientID,
-            clientSecret: googleOAuthConfiguration.googleClientSecret,
+            clientID: keys.googleClientID,
+            clientSecret: keys.googleClientSecret,
             callbackURL: '/auth/google/callback',
             proxy: true
         },
         (accessToken, refreshToken, profile, done) => {
-            // console.log(accessToken);
-            // console.log(profile);
-
             const image = profile.photos[0].value.substring(0, profile.photos[0].value.indexOf('?'));
             User.findOne({ googleID: profile.id }).then(user => {
                 if (user) {

@@ -7,24 +7,23 @@ const mongoose = require('mongoose');
 const exphbs  = require('express-handlebars');
 const passport = require('passport');
 const session = require('express-session');
+const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const methodOverride = require('method-override');
 
 // Require configuration files
-const databaseConfiguration = require('./config/database');
-const googleOAuthConfiguration = require('./config/googleoauth');
+const keys = require('./config/keys');
 
 // Require route files
 const index = require('./routes/index');
+const stories = require('./routes/stories');
 const auth = require('./routes/auth');
 
 // Initialize the server
 let app = express();
 
-// Set path to static content
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
 // Connect to database
-mongoose.connect(databaseConfiguration.mongoURI)
+mongoose.connect(keys.mongoURI)
 .then(() => {
     console.log('Connected to database...');
 })
@@ -32,12 +31,31 @@ mongoose.connect(databaseConfiguration.mongoURI)
     throw error;
 });
 
+// Handlebars helpers
+const { truncate, stripHtmlTags, formatDate, select, editIcon } = require('./helpers/hbs');
+
 // Handlebars setup
-app.engine('handlebars', exphbs({ defaultLayout: 'main'} ));
+app.engine('handlebars', exphbs({
+    defaultLayout: 'main',
+    helpers: {
+        truncate: truncate,
+        stripHtmlTags: stripHtmlTags,
+        formatDate: formatDate,
+        select: select,
+        editIcon: editIcon
+    }
+} ));
 app.set('view engine', 'handlebars');
+
+// Body parser setup
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 // Cookie parser setup
 app.use(cookieParser());
+
+// Method override setup
+app.use(methodOverride('_method'));
 
 // Express session setup
 app.use(session({
@@ -57,8 +75,12 @@ app.use((req, res, next) => {
     next();
 })
 
+// Set path to static content
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 // Route files setup
 app.use('/', index);
+app.use('/stories', stories);
 app.use('/auth', auth);
 
 // Set the port and start the server
